@@ -19,7 +19,10 @@ services:
     environment:
       - MQTT_BROKER=mosquitto
       - MQTT_PORT=1883
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_DEFAULT_MODEL=${LLM_DEFAULT_MODEL}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS}
     restart: unless-stopped
 
 volumes:

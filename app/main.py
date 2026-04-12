@@ -13,7 +13,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# to edge.request
+
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
         log.info("Connected to MQTT broker")
@@ -24,7 +24,15 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 
 def on_message(client, userdata, msg):
-    """Handle incoming MQTT messages from ESP32."""
+    """Handle incoming MQTT messages from ESP32.
+
+    Expected JSON payload:
+        {
+            "device_id": "esp32-01",
+            "prompt": "Hello, what is the weather?",
+            "model": "llama3"          // optional, overrides default
+        }
+    """
     try:
         payload = json.loads(msg.payload.decode())
     except (json.JSONDecodeError, UnicodeDecodeError):
@@ -33,16 +41,19 @@ def on_message(client, userdata, msg):
 
     device_id = payload.get("device_id", "unknown")
     prompt = payload.get("prompt", "")
-    log.info("Request from %s: %s", device_id, prompt[:80])
+    model = payload.get("model")  # None → use default
+
+    log.info("Request from %s (model=%s): %s", device_id, model or "default", prompt[:80])
 
     if not prompt:
         return
 
-    answer = ask_llm(prompt)
+    answer = ask_llm(prompt, model=model)
     log.info("LLM response (%d chars)", len(answer))
 
     response = json.dumps({
         "device_id": device_id,
+        "model": model,
         "response": answer,
     })
     client.publish(TOPIC_RESPONSE, response, qos=1)
