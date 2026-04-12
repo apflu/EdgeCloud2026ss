@@ -1,10 +1,7 @@
-import logging
-
 from openai import OpenAI
 
 from config import LLM_BASE_URL, LLM_API_KEY, LLM_DEFAULT_MODEL, LLM_MAX_TOKENS
-
-log = logging.getLogger(__name__)
+from logger import log
 
 # OpenAI-compatible client pointing at the configured endpoint
 client = OpenAI(
@@ -29,5 +26,5 @@ def ask_llm(prompt: str, model: str | None = None) -> str:
         )
         return response.choices[0].message.content
     except Exception as e:
-        log.error("LLM request failed (model=%s, endpoint=%s): %s", model, LLM_BASE_URL, e)
+        log.error("LLM request failed (model={}, endpoint={}): {}", model, LLM_BASE_URL, e)
         return f"LLM error: {e}"

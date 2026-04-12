@@ -1,5 +1,9 @@
 import os
 
+# ── Logging ───────────────────────────────────────────────────────────
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+LOG_FILE = os.environ.get("LOG_FILE", "logs/edgecloud.log")
+
 # ── MQTT ──────────────────────────────────────────────────────────────
 MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))

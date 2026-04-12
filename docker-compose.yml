@@ -23,6 +23,8 @@ services:
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_DEFAULT_MODEL=${LLM_DEFAULT_MODEL}
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FILE=/app/logs/edgecloud.log
     restart: unless-stopped
 
 volumes:
