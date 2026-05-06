@@ -13,3 +13,5 @@ Verschlüsselung auf ESP32 – machbar, aber mit Einschränkungen. Der ESP32 hat
 Netzwerktopologie ist unklar. Wie kommunizieren die Komponenten? Eine saubere Architektur wäre: ESP32s → MQTT-Broker (auf dem Server) → Processing Pipeline → Dashboard. Reachy separat per RTSP oder gRPC an den Server. Zwei getrennte Kommunikationspfade, sauber trennbar.
 
 Was macht Reachy eigentlich sinnvoll? Im aktuellen Konzept ist Reachy eher ein teurer Kameraständer. Der eigentliche Mehrwert wäre Interaktion: Patient ansprechen ("Brauchen Sie Hilfe?"), Kopf zum Patienten drehen als visuelles Feedback, einfache Ja/Nein-Kommunikation ermöglichen. Das würde Reachy von einem passiven Beobachter zu einem aktiven Assistenten machen.
+
+192.168.179.191 laboradmin FU12Labor
