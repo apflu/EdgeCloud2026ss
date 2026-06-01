@@ -1,17 +1,89 @@
-# 11
+# Secure MedTech UI - Observation Dashboard
 
+React + TypeScript dashboard for the Secure MedTech Companion interface layer.
 
-## Fragen
-Wo läuft die Vision-Inferenz wirklich? Der Reachy Mini hat nicht die Rechenleistung für ein brauchbares Sturzerkennungsmodell. Also muss der Videostream zum Server. Dann ist die Aussage "Bilder verlassen den Raum nicht" zwar noch haltbar (lokales Netz), aber die Architektur im Dokument ist irreführend. Besser wäre: Reachy streamt an den Server, der Server inferiert, Rohbilder werden sofort verworfen – nur Events werden gespeichert.
+This version is focused on realistic frontend responsibilities:
 
-Sturzerkennung per Kamera ist der umständliche Weg. Ein Beschleunigungssensor am ESP32 erkennt Stürze deutlich zuverlässiger, schneller und ressourcenschonender. Die Kamera bringt für Sturzerkennung wenig Mehrwert, dafür viel Komplexität (Pose Estimation, Beleuchtungsprobleme, Okklusion). Sinnvoller wäre die Kamera als zweiten Kanal zur Verifikation zu nutzen – also erst Sturz per IMU detektieren, dann kurz per Kamera bestätigen.
+- receives patient observations: vitals + edge/camera tracking metadata;
+- derives risk, alerts, robot suggestions, device state and audit events internally;
+- supports operator actions: acknowledge, resolve, escalate, patient checked;
+- provides selectable robot actions with realistic hospital-oriented prompts;
+- includes a manual JSON input panel at the bottom of the page for testing payloads.
 
-Sensor Fusion fehlt konzeptionell. Das Dokument sagt, der Server wertet Sensordaten und Kamera-Metadaten "zusammen" aus – aber wie? Es fehlt eine konkrete Fusionsstrategie. Best Practice wäre ein Event-Driven-Ansatz: Jeder Sensor publiziert Events über MQTT, der Server hat eine Rule Engine oder ein einfaches Zustandsmodell, das aus kombinierten Events Alarmstufen ableitet. Beispiel: Beschleunigungssensor meldet Sturz + Puls steigt + Patient antwortet nicht auf Reachy-Audioprobe → Alarm Stufe 3.
+## Run
 
-Verschlüsselung auf ESP32 – machbar, aber mit Einschränkungen. Der ESP32 hat Hardware-AES, also ist symmetrische Verschlüsselung kein Problem. TLS mit Zertifikaten wird aber schnell eng im RAM. Pragmatischer für ein Uni-Projekt: MQTT over TLS zum Server, Pre-Shared Keys statt vollständige PKI. Das ist technisch sauber und trotzdem umsetzbar.
+```bash
+npm install
+npm run dev -- --host 0.0.0.0
+```
 
-Netzwerktopologie ist unklar. Wie kommunizieren die Komponenten? Eine saubere Architektur wäre: ESP32s → MQTT-Broker (auf dem Server) → Processing Pipeline → Dashboard. Reachy separat per RTSP oder gRPC an den Server. Zwei getrennte Kommunikationspfade, sauber trennbar.
+## Test
 
-Was macht Reachy eigentlich sinnvoll? Im aktuellen Konzept ist Reachy eher ein teurer Kameraständer. Der eigentliche Mehrwert wäre Interaktion: Patient ansprechen ("Brauchen Sie Hilfe?"), Kopf zum Patienten drehen als visuelles Feedback, einfache Ja/Nein-Kommunikation ermöglichen. Das würde Reachy von einem passiven Beobachter zu einem aktiven Assistenten machen.
+```bash
+npm run build
+npm run test
+```
 
-## 192.168.179.191 laboradmin FU12Labor
+## Main files
+
+```text
+src/types/incoming.ts              Patient observation JSON contract
+src/lib/mockObservations.ts        Local generated observation samples
+src/lib/riskEngine.ts              Internal risk calculation
+src/lib/alertEngine.ts             Alert generation
+src/lib/deviceEngine.ts            Device state derivation
+src/lib/robot.ts                   Robot command options and payloads
+src/lib/deriveDashboardState.ts    Observation -> dashboard state
+src/components/ObservationInputPanel.tsx  Manual JSON test panel
+src/hooks/useDashboardStream.ts    State controller and operator actions
+```
+
+## Local simulation
+
+The changing demo data is generated in `src/lib/mockObservations.ts` as TypeScript generator functions, not as static `.json` files. The local stream randomly switches between normal, resting, active, elevated-risk, vitals-concern, bed-exit, device-issue, tracking-loss and fall-like observations.
+
+## Expected input contract
+
+The preferred server structure is:
+
+```json
+{
+  "roomId": "Room-101",
+  "timestamp": "2026-05-06T10:20:00Z",
+  "patients": [
+    {
+      "patientId": "PATIENT-A",
+      "displayAlias": "Patient A",
+      "bedZone": "Bed A",
+      "tracking": {
+        "personDetected": true,
+        "zone": "Floor Area",
+        "posture": "lying",
+        "motionLevel": 0.1,
+        "fallProbability": 92,
+        "timeImmobileSeconds": 42,
+        "distanceFromBedMeters": 1.6,
+        "confidence": 0.93
+      },
+      "vitals": {
+        "heartRate": 122,
+        "temperature": 37.8,
+        "oxygenSaturation": 94
+      },
+      "devices": [
+        {
+          "id": "esp32-A",
+          "type": "wearable",
+          "battery": 68,
+          "lastSeen": "2026-05-06T10:19:58Z"
+        }
+      ],
+      "robot": {
+        "available": true
+      }
+    }
+  ]
+}
+```
+
+The dashboard should not require risk score, alerts, robot commands or audit entries from the server.
