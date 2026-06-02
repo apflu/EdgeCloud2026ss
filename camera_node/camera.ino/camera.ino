@@ -37,7 +37,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
   esp_err_t res = ESP_OK;
   size_t _jpg_buf_len = 0;
   uint8_t * _jpg_buf = NULL;
-  char * part_buf[64];
+  char part_buf[128];
 
   res = httpd_resp_set_type(req, "multipart/x-mixed-replace;boundary=123456789000000000000987654321");
   if (res != ESP_OK) return res;
@@ -53,8 +53,8 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     }
 
     if (res == ESP_OK) {
-      size_t hlen = snprintf((char *)part_buf, 64, "\r\n--123456789000000000000987654321\r\nContent-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n", _jpg_buf_len);
-      res = httpd_resp_send_chunk(req, (const char *)part_buf, hlen);
+      size_t hlen = snprintf(part_buf, sizeof(part_buf), "\r\n--123456789000000000000987654321\r\nContent-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n", (unsigned int)_jpg_buf_len);
+      res = httpd_resp_send_chunk(req, part_buf, hlen);
     }
     if (res == ESP_OK) {
       res = httpd_resp_send_chunk(req, (const char *)_jpg_buf, _jpg_buf_len);
@@ -119,11 +119,13 @@ void setup() {
   config.pixel_format = PIXFORMAT_JPEG;
 
   if(psramFound()){
-    config.frame_size = FRAMESIZE_VGA;
+    // With PSRAM we can use a higher resolution stream.
+    config.frame_size = FRAMESIZE_SVGA;
     config.jpeg_quality = 10;
     config.fb_count = 2;
   } else {
-    config.frame_size = FRAMESIZE_SVGA;
+    // Without PSRAM we keep the frame smaller to avoid crashes.
+    config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 12;
     config.fb_count = 1;
   }

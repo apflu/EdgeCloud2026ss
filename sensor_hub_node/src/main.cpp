@@ -19,10 +19,10 @@ const char* ssid = "DEIN_WLAN_NAME";         // <-- 2.4 GHz WLAN eintragen
 const char* password = "DEIN_WLAN_PASSWORT"; // <-- WLAN Passwort eintragen
 
 // Öffentlicher MQTT Test-Server
-const char* mqtt_server = "localhost";
+const char* mqtt_server = "DEIN_MQTT_SERVER_IP"; // z.B. "192.168.179.50". Nicht "localhost" auf dem ESP32 verwenden.
 const int mqtt_port = 1883;
 // WICHTIG: Denk dir hier einen EIGENEN, einzigartigen Namen aus!
-const char* mqtt_topic = "karlsruhe/medical/sensor_dein_name"; 
+const char* mqtt_topic = "edge/sensors/waiting_room_1/hub"; 
 
 // --- PINS ---
 #define I2C_SDA 4
