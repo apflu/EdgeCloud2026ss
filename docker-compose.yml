@@ -1,0 +1,11 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: secure-medtech-ui:latest
+    container_name: secure-medtech-ui
+    ports:
+      # Host 8080 -> nginx 80 inside the container
+      - "8080:80"
+    restart: unless-stopped
