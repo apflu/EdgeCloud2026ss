@@ -27,6 +27,26 @@ services:
       - LOG_FILE=/app/logs/edgecloud.log
     restart: unless-stopped
 
+  # Bridges MQTT patient observations to a plain WebSocket the browser
+  # dashboard (EdgeCloud) can consume via its VITE_WS_URL setting.
+  bridge:
+    build: ./bridge
+    container_name: edgecloud-bridge
+    depends_on:
+      - mosquitto
+    ports:
+      # Host 8081 -> WebSocket server inside the container. The dashboard's
+      # VITE_WS_URL must point here (ws://localhost:8081).
+      - "8081:8081"
+    environment:
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+      - OBSERVATION_TOPIC=edge/observations/room/101
+      - WS_HOST=0.0.0.0
+      - WS_PORT=8081
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+
 volumes:
   mosquitto_data:
   mosquitto_log:
