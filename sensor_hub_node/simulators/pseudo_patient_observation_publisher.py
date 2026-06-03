@@ -122,20 +122,66 @@ def tracking_loss_patient(patient_id: str, alias: str, bed: str) -> dict:
     return patient
 
 
+def fixed_alert_patient(patient_id: str, alias: str, bed: str) -> dict:
+    """Patient C: a constant, alert-triggering state that does NOT change between
+    cycles. Only the timestamps refresh; every alert-driving field is fixed, so
+    the dashboard always shows one persistent alert to observe while A and B
+    flicker between normal and alert states. The values describe a likely fall:
+    on the floor, immobile, high fall probability, high heart rate, low SpO2 ->
+    derives to CRITICAL. Constant values also mean no rate-of-change triggers
+    after the first cycle, so the alert stays steady rather than spiking."""
+    ts = now_iso()
+    return {
+        "patientId": patient_id,
+        "displayAlias": alias,
+        "bedZone": bed,
+        "tracking": {
+            "personDetected": True,
+            "zone": "Floor Area",
+            "posture": "lying",
+            "motionLevel": 0.0,
+            "fallProbability": 95,
+            "timeImmobileSeconds": 60,
+            "distanceFromBedMeters": 1.8,
+            "confidence": 0.93,
+        },
+        "vitals": {
+            "heartRate": 132,
+            "temperature": 37.6,
+            "oxygenSaturation": 92,
+        },
+        "devices": [device(patient_id, ts, battery=70)],
+    }
+
+
+def event_patient(mode: str, patient_tuple: tuple) -> dict:
+    """The alert state used for the rotating patient (A or B), chosen by mode."""
+    if mode == "emergency":
+        return emergency_patient(*patient_tuple)
+    if mode == "tracking-loss":
+        return tracking_loss_patient(*patient_tuple)
+    if mode == "elevated":
+        return elevated_patient(*patient_tuple)
+    if mode == "mixed":
+        return random.choice([elevated_patient, emergency_patient, tracking_loss_patient])(*patient_tuple)
+    return normal_patient(*patient_tuple)
+
+
 def build_room_observation(mode: str) -> dict:
     ts = now_iso()
     patients = []
-    selected_event = random.choice([0, 1, 2])
+
+    # Patient C (index 2) is pinned to a constant alert-triggering state, so there
+    # is always one persistent alert. Patients A and B keep rotating: one is
+    # randomly chosen each cycle to show an alert state (per mode), the other
+    # stays normal. In "normal" mode A and B are both normal (C still alerts).
+    rotating_event = random.choice([0, 1])
 
     for index, patient_tuple in enumerate(PATIENTS):
-        if mode == "emergency" and index == selected_event:
-            patients.append(emergency_patient(*patient_tuple))
-        elif mode == "tracking-loss" and index == selected_event:
-            patients.append(tracking_loss_patient(*patient_tuple))
-        elif mode == "mixed" and index == selected_event:
-            patients.append(random.choice([elevated_patient, emergency_patient, tracking_loss_patient])(*patient_tuple))
-        elif mode == "elevated" and index == selected_event:
-            patients.append(elevated_patient(*patient_tuple))
+        if index == 2:
+            patients.append(fixed_alert_patient(*patient_tuple))
+        elif index == rotating_event and mode != "normal":
+            patients.append(event_patient(mode, patient_tuple))
         else:
             patients.append(normal_patient(*patient_tuple))
 
