@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { AuditSnapshot, DashboardData } from '../types/dashboard';
+import type { BackendAlert, EnrichmentMap } from '../types/alerts';
 import { buildRobotOptions, type RobotCommandCode } from '../lib/robot';
 import { Panel, StatusBadge, TrendSnippet, TrendZoomModal } from './common';
 
@@ -87,37 +88,82 @@ export function HealthSummaryPanel({ data }: { data: DashboardData }) {
   );
 }
 
+function AiEnrichment({ enrichment }: { enrichment: EnrichmentMap[string] }) {
+  return (
+    <div className='ai-enrichment'>
+      <div className='ai-enrichment-head'>
+        <span className='badge badge-neutral'>AI explanation{enrichment.model ? ` · ${enrichment.model}` : ''}</span>
+      </div>
+      <p className='ai-summary'>{enrichment.summary}</p>
+      <div className='ai-enrichment-grid'>
+        <div><span>Recommended action</span><strong>{enrichment.recommendedAction}</strong></div>
+        <div><span>Robot says</span><strong>“{enrichment.robotSpeech}”</strong></div>
+      </div>
+    </div>
+  );
+}
+
 export function AlertsPanel({
   data,
+  backendAlerts = [],
+  enrichments = {},
   onAcknowledge,
   onResolve,
   onEscalate,
 }: {
   data: DashboardData;
+  backendAlerts?: BackendAlert[];
+  enrichments?: EnrichmentMap;
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
   onEscalate: (id: string) => void;
 }) {
   return (
-    <Panel title='Active Alerts' subtitle='Generated internally from edge-derived tracking metadata and vitals'>
+    <Panel title='Active Alerts' subtitle='Local derivation for the selected patient, reconciled with the backend engine'>
+      {backendAlerts.length > 0 ? (
+        <div className='engine-strip'>
+          <strong>Engine — authoritative, room-wide ({backendAlerts.length})</strong>
+          <div className='engine-chips'>
+            {backendAlerts.map((alert) => (
+              <button
+                key={alert.id}
+                type='button'
+                className={alert.patientId === data.patient.id ? 'engine-chip selected' : 'engine-chip'}
+                title={alert.reasons.join(' · ')}
+              >
+                <span>{alert.displayAlias}</span>
+                <StatusBadge label={`${alert.severity} · ${alert.score}`} tone={severityTone(alert.severity)} />
+              </button>
+            ))}
+          </div>
+          <small>Evaluated for every patient by the backend, independent of which patient is selected here.</small>
+        </div>
+      ) : null}
+
       {data.alerts.length === 0 ? <div className='empty-state'>No active alerts. Current observations are inside monitoring range.</div> : (
         <div className='stack'>
-          {data.alerts.map((alert) => (
-            <article key={alert.id} className='alert-card'>
-              <div className='alert-card-header'>
-                <div><h3>{alert.title}</h3><p>{new Date(alert.createdAt).toLocaleTimeString()}</p></div>
-                <StatusBadge label={`${alert.severity} · ${alert.status}`} tone={severityTone(alert.severity)} />
-              </div>
+          {data.alerts.map((alert) => {
+            const enrichment = enrichments[data.patient.id];
+            const enrichmentMatches = Boolean(enrichment) && alert.id.startsWith(`ALERT-${data.patient.id}`);
+            return (
+              <article key={alert.id} className='alert-card'>
+                <div className='alert-card-header'>
+                  <div><h3>{alert.title}</h3><p>{new Date(alert.createdAt).toLocaleTimeString()}</p></div>
+                  <StatusBadge label={`${alert.severity} · ${alert.status}`} tone={severityTone(alert.severity)} />
+                </div>
 
-              <ul>{alert.reason.map((reason, index) => <li key={`${alert.id}-${index}`}>{reason}</li>)}</ul>
+                <ul>{alert.reason.map((reason, index) => <li key={`${alert.id}-${index}`}>{reason}</li>)}</ul>
 
-              <div className='panel-actions'>
-                {alert.status === 'OPEN' ? <button type='button' onClick={() => onAcknowledge(alert.id)}>Acknowledge</button> : null}
-                {alert.status !== 'RESOLVED' ? <button type='button' onClick={() => onResolve(alert.id)}>Resolve</button> : null}
-                {alert.status !== 'RESOLVED' ? <button type='button' className='danger-button' onClick={() => onEscalate(alert.id)}>Escalate</button> : null}
-              </div>
-            </article>
-          ))}
+                {enrichmentMatches ? <AiEnrichment enrichment={enrichment} /> : null}
+
+                <div className='panel-actions'>
+                  {alert.status === 'OPEN' ? <button type='button' onClick={() => onAcknowledge(alert.id)}>Acknowledge</button> : null}
+                  {alert.status !== 'RESOLVED' ? <button type='button' onClick={() => onResolve(alert.id)}>Resolve</button> : null}
+                  {alert.status !== 'RESOLVED' ? <button type='button' className='danger-button' onClick={() => onEscalate(alert.id)}>Escalate</button> : null}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </Panel>

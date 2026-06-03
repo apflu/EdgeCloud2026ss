@@ -230,3 +230,80 @@
   margin: 4px 0 0;
   color: var(--muted);
 }
+
+/* Backend engine room-wide alert strip */
+.engine-strip {
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.engine-strip > strong {
+  display: block;
+  margin-bottom: 8px;
+}
+.engine-strip small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+.engine-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.engine-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--line);
+}
+.engine-chip.selected {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
+}
+
+/* LLM narration inside an alert card */
+.ai-enrichment {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+}
+.ai-enrichment-head {
+  margin-bottom: 8px;
+}
+.ai-summary {
+  margin: 0 0 10px;
+  color: var(--text);
+}
+.ai-enrichment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.ai-enrichment-grid > div {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #ece9fb;
+}
+.ai-enrichment-grid span {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.ai-enrichment-grid strong {
+  margin-top: 4px;
+}
+@media (max-width: 720px) {
+  .ai-enrichment-grid {
+    grid-template-columns: 1fr;
+  }
+}

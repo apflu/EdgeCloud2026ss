@@ -20,6 +20,8 @@ export default function App() {
     connectionMode,
     jsonInputError,
     lastManualJsonAcceptedAt,
+    backendAlerts,
+    enrichments,
     latestObservation,
     selectedPatientId,
     pause,
@@ -68,7 +70,14 @@ export default function App() {
       <div className='dashboard-grid'>
         <PatientStatusPanel data={data} onSelectPatient={selectPatient} />
         <HealthSummaryPanel data={data} />
-        <AlertsPanel data={data} onAcknowledge={acknowledgeAlert} onResolve={resolveAlert} onEscalate={escalateAlert} />
+        <AlertsPanel
+          data={data}
+          backendAlerts={backendAlerts}
+          enrichments={enrichments}
+          onAcknowledge={acknowledgeAlert}
+          onResolve={resolveAlert}
+          onEscalate={escalateAlert}
+        />
         <DevicesPanel data={data} />
         <PrivacyPanel data={data} />
         <RobotPanel
