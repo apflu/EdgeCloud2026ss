@@ -11,6 +11,12 @@ MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 TOPIC_REQUEST = "edge/request"
 TOPIC_RESPONSE = "edge/response"
 
+# Authoritative alerts from the rule/state engine (input) and the LLM-enriched
+# narration this service produces from them (output). Enrichment NEVER changes
+# the alert decision — it only explains an alert the engine already fired.
+TOPIC_ALERTS = os.environ.get("TOPIC_ALERTS", "edge/alerts/room/101")
+TOPIC_ALERTS_ENRICHED = os.environ.get("TOPIC_ALERTS_ENRICHED", "edge/alerts/enriched/room/101")
+
 # ── LLM Endpoint ─────────────────────────────────────────────────────
 # Base URL of any OpenAI-compatible API (Ollama, vLLM, LM Studio, etc.)
 # Examples:
