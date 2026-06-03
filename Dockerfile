@@ -8,6 +8,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# WebSocket source the dashboard connects to at runtime. Vite inlines
+# VITE_-prefixed env vars at build time, so it must be present here.
+# Points at the EdgeCloud_Main MQTT->WebSocket bridge (see its docker-compose).
+ARG VITE_WS_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+
 # Copy the rest of the source and produce the production build in /app/dist
 COPY . .
 RUN npm run build
