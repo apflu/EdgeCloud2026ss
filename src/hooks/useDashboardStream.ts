@@ -13,6 +13,12 @@ import {
 import { buildRobotCommand, buildRobotCommandPayload, type RobotCommandCode } from '../lib/robot';
 import { DashboardSchema, type AlertItem, type DashboardData, type Severity } from '../types/dashboard';
 import { parseIncomingRoomState, type IncomingRoomState } from '../types/incoming';
+import {
+  BackendAlertSnapshotSchema,
+  EnrichedAlertSchema,
+  type BackendAlert,
+  type EnrichmentMap,
+} from '../types/alerts';
 
 const WS_URL = import.meta.env.VITE_WS_URL as string | undefined;
 type ConnectionMode = 'local-observation-simulation' | 'server-websocket' | 'paused' | 'manual-json';
@@ -55,6 +61,10 @@ export function useDashboardStream(intervalMs = 3000) {
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('local-observation-simulation');
   const [jsonInputError, setJsonInputError] = useState<string | null>(null);
   const [lastManualJsonAcceptedAt, setLastManualJsonAcceptedAt] = useState<string | null>(null);
+  // Authoritative alerts from the backend engine + their LLM narration. These
+  // come over the WebSocket bridge; they stay empty in local/manual modes.
+  const [backendAlerts, setBackendAlerts] = useState<BackendAlert[]>([]);
+  const [enrichments, setEnrichments] = useState<EnrichmentMap>({});
   const wsRef = useRef<WebSocket | null>(null);
   const latestObservationRef = useRef<IncomingRoomState>(seed);
   const selectedPatientIdRef = useRef(seed.patients[0]?.patientId ?? '');
@@ -115,7 +125,23 @@ export function useDashboardStream(intervalMs = 3000) {
 
       ws.onmessage = (event) => {
         try {
-          ingestObservation(parseIncomingRoomState(JSON.parse(event.data)), 'server-websocket');
+          const raw = JSON.parse(event.data);
+          // Bridge wraps every message as { type, data }. A bare observation
+          // (no type) is still accepted for backward compatibility.
+          const envelope = raw as { type?: string; data?: unknown };
+          if (envelope && typeof envelope === 'object' && typeof envelope.type === 'string') {
+            if (envelope.type === 'observation') {
+              ingestObservation(parseIncomingRoomState(envelope.data), 'server-websocket');
+            } else if (envelope.type === 'alerts') {
+              const parsed = BackendAlertSnapshotSchema.safeParse(envelope.data);
+              if (parsed.success) setBackendAlerts(parsed.data.alerts);
+            } else if (envelope.type === 'enriched') {
+              const parsed = EnrichedAlertSchema.safeParse(envelope.data);
+              if (parsed.success) setEnrichments((previous) => ({ ...previous, [parsed.data.patientId]: parsed.data }));
+            }
+          } else {
+            ingestObservation(parseIncomingRoomState(raw), 'server-websocket');
+          }
           setJsonInputError(null);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Invalid incoming patient observation payload received from server.';
@@ -293,6 +319,8 @@ export function useDashboardStream(intervalMs = 3000) {
     connectionMode,
     jsonInputError,
     lastManualJsonAcceptedAt,
+    backendAlerts,
+    enrichments,
     latestObservation: latestObservationRef.current,
     selectedPatientId: data.patient.id,
     pause: () => setStreaming(false),
@@ -307,6 +335,8 @@ export function useDashboardStream(intervalMs = 3000) {
       setJsonInputError(null);
       setLastManualJsonAcceptedAt(null);
       setConnectionMode('local-observation-simulation');
+      setBackendAlerts([]);
+      setEnrichments({});
       setData(DashboardSchema.parse(deriveDashboardState(fresh, undefined, selectedPatientIdRef.current)));
     },
     selectPatient,
