@@ -15,15 +15,11 @@
 #include "GasAlarm.h"
 
 // --- KONFIGURATION (HIER ANPASSEN!) ---
-const char* ssid = "OpenWRT-2.4G";         // <-- 2.4 GHz WLAN (oder Hotspot) eintragen
-const char* password = "FU12Labor"; // <-- WLAN Passwort eintragen
+const char* ssid = "OpenWRT-2.4G";         
+const char* password = "FU12Labor"; 
 
-// Wir nutzen den öffentlichen Broker für den Test!
-// (Später im Labor hier die IP des Servers eintragen, z.B. "192.168.x.x")
 const char* mqtt_server = "192.168.179.191";
 const int mqtt_port = 1883;
-
-// EXAKT das Topic aus dem Python-Skript!
 const char* mqtt_topic = "edge/observations/room/101"; 
 
 // --- PINS ---
@@ -39,18 +35,11 @@ GasAlarm gasAlarm;
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-/**
- * @brief Stellt eine stabile WLAN Verbindung her
- */
-/**
- * @brief Stellt eine stabile WLAN Verbindung her (mit Deep Debugging)
- */
 void setup_wifi() {
   Serial.println("\n--- Netzwerk Setup ---");
   Serial.print("Verbinde mit WLAN: ");
   Serial.println(ssid);
 
-  // 1. WLAN Event-Listener (Der "Spion", der lauscht, was schiefgeht)
   WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info){
     if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
       Serial.print("\n[WLAN FEHLER] Verbindung abgelehnt! Reason-Code: ");
@@ -58,15 +47,10 @@ void setup_wifi() {
     }
   });
 
-  // 2. Expliziter Reset des WLAN-Moduls
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(true, true);
   delay(500);
 
-  // 3. Optional: Zwinge den ESP32, auch ältere WPA2-Standards zu akzeptieren
-  //WiFi.setMinSecurity(WIFI_AUTH_WPA_WPA2_PSK); 
-
-  // 4. Start
   WiFi.begin(ssid, password);
 
   int retries = 0;
@@ -85,9 +69,6 @@ void setup_wifi() {
   }
 }
 
-/**
- * @brief Hält die MQTT-Verbindung aufrecht
- */
 void reconnect_mqtt() {
   while (!mqttClient.connected()) {
     Serial.print("Verbinde mit MQTT-Broker...");
@@ -109,11 +90,12 @@ void setup() {
   Serial.begin(115200);
   Wire.begin(I2C_SDA, I2C_SCL); 
 
-  // 1. Netzwerk starten
   setup_wifi();
   mqttClient.setServer(mqtt_server, mqtt_port);
+  
+  // 🔴 HIER IST DER FIX FÜR GROSSE JSONS 🔴
+  mqttClient.setBufferSize(1024); 
 
-  // 2. Hardware starten
   Serial.println("\n--- Hardware Setup ---");
   envMonitor.begin();
   patientCounter.begin();
@@ -121,47 +103,41 @@ void setup() {
 }
 
 void loop() {
-  // 1. WLAN Check
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[WARNUNG] WLAN verloren. Verbinde neu...");
     WiFi.disconnect();
     WiFi.reconnect();
-    delay(5000); // Hier ist ein Delay okay, weil wir eh offline sind
+    delay(5000); 
     return;
   }
 
-  // 2. MQTT Check
   if (!mqttClient.connected()) {
     reconnect_mqtt();
   }
   
-  // DAS IST DIE WICHTIGSTE ZEILE! Sie muss JEDEN Durchlauf ohne Pause ausgeführt werden.
   mqttClient.loop(); 
 
-  // 3. Stoppuhr-Logik (Senden ohne Delay!)
-  static unsigned long lastMsgTime = 0; // Speichert den Zeitpunkt der letzten Nachricht
+
+  static unsigned long lastMsgTime = 0; 
   unsigned long now = millis();
 
-  // Wenn 3000 Millisekunden (3 Sekunden) vergangen sind:
+  // Alle 3 Sekunden das JSON senden
   if (now - lastMsgTime >= 3000) {
-    lastMsgTime = now; // Stoppuhr zurücksetzen
+    lastMsgTime = now; 
 
-    // --- Sensoren auslesen ---
+    // Nur I2C und ADC Sensoren hier updaten (Radar wurde oben schon geupdatet)
     envMonitor.update();
     patientCounter.update();
     gasAlarm.update();
 
-    // --- JSON NEU AUFBAUEN ---
     DynamicJsonDocument doc(1024); 
 
     doc["roomId"] = "Room-101";
     
-    // Dynamischer Zeitstempel (Damit das Dashboard erkennt: Neue Daten!)
     char timeString[32];
-    sprintf(timeString, "2026-06-18T12:00:%02d.%03dZ", (now / 1000) % 60, now % 1000);
+    sprintf(timeString, "2026-06-18T12:00:%02d.%03dZ", (int)(now / 1000) % 60, (int)now % 1000);
     doc["timestamp"] = timeString; 
 
-    // Patienten Array
     JsonArray patients = doc.createNestedArray("patients");
     JsonObject patientA = patients.createNestedObject();
     
@@ -169,7 +145,6 @@ void loop() {
     patientA["displayAlias"] = "Patient A (ESP32)"; 
     patientA["bedZone"] = "Bed A";
 
-    // Tracking
     JsonObject tracking = patientA.createNestedObject("tracking");
     float distMeters = patientCounter.getDistance() / 1000.0; 
     tracking["personDetected"] = true; 
@@ -180,22 +155,23 @@ void loop() {
     tracking["timeImmobileSeconds"] = 0;
     tracking["distanceFromBedMeters"] = distMeters; 
     tracking["confidence"] = 0.98;
+    
 
-    // Vitals
+
     JsonObject vitals = patientA.createNestedObject("vitals");
     vitals["heartRate"] = 133; 
     vitals["temperature"] = envMonitor.getTemperature(); 
     vitals["oxygenSaturation"] = 98;
+    // Wir verstecken den Gas-Sensor bei den Vitals (oder wo es im Dashboard am besten passt)
+    vitals["gas_adc_level"] = gasAlarm.getGasLevel(); 
 
-    // Devices
     JsonArray devices = patientA.createNestedArray("devices");
     JsonObject dev1 = devices.createNestedObject();
     dev1["id"] = "esp32-s3-sensor-hub-01";
     dev1["type"] = "wearable";
     dev1["battery"] = 100;
-    dev1["lastSeen"] = timeString; // Auch hier der neue Zeitstempel
+    dev1["lastSeen"] = timeString; 
 
-    // --- Senden ---
     String payload;
     serializeJson(doc, payload);
 
@@ -205,5 +181,4 @@ void loop() {
     
     mqttClient.publish(mqtt_topic, payload.c_str());
   } 
-  // HIER KEIN DELAY MEHR! Die Schleife rast weiter und hält MQTT am Leben.
 }
