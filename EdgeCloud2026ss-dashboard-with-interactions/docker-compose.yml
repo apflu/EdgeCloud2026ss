@@ -1,0 +1,19 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Connect the live dashboard to the EdgeCloud_Main MQTT->WebSocket
+        # bridge. Both stacks run on the same machine, so the browser dials
+        # the bridge's published port on localhost. Override for a remote host.
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8081}
+        # Backend TTS service (EdgeCloudAudio/ttsServer) that the speaker
+        # buttons on robot suggestions call to generate + publish speech.
+        VITE_TTS_API_URL: ${VITE_TTS_API_URL:-http://localhost:5005}
+    image: secure-medtech-ui:latest
+    container_name: secure-medtech-ui
+    ports:
+      # Host 8080 -> nginx 80 inside the container
+      - "8080:80"
+    restart: unless-stopped
