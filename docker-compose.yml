@@ -40,7 +40,10 @@ services:
     environment:
       - MQTT_BROKER=mosquitto
       - MQTT_PORT=1883
+      # Raw ESP32 feed in; completed canonical observation out (the bridge reads
+      # the latter so the dashboard gets full-schema data, not the partial feed).
       - OBSERVATION_TOPIC=edge/observations/room/101
+      - OBSERVATION_OUT_TOPIC=edge/observations/normalized/room/101
       - ALERTS_TOPIC=edge/alerts/room/101
       - CHANGE_WINDOW_SECONDS=30
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -61,7 +64,8 @@ services:
     environment:
       - MQTT_BROKER=mosquitto
       - MQTT_PORT=1883
-      - OBSERVATION_TOPIC=edge/observations/room/101
+      # Consume the engine's completed observation, not the raw ESP32 feed.
+      - OBSERVATION_TOPIC=edge/observations/normalized/room/101
       - ALERTS_TOPIC=edge/alerts/room/101
       - ENRICHED_TOPIC=edge/alerts/enriched/room/101
       - WS_HOST=0.0.0.0
