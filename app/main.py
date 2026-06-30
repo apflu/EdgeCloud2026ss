@@ -1,9 +1,11 @@
 import json
 import time
+from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 
 from config import (
+    MAX_ALERT_AGE_SECONDS,
     MQTT_BROKER,
     MQTT_PORT,
     TOPIC_ALERTS,
@@ -19,6 +21,20 @@ from llm_client import ask_llm
 # Last alert id we enriched per patient, so the (retained, ~per-cycle) alert
 # snapshot only triggers an LLM call when something actually changed.
 _enriched_alert_ids: dict[str, str] = {}
+
+
+def _snapshot_age_seconds(timestamp: str) -> float | None:
+    """Seconds between a snapshot's observation time and now (UTC), or None if
+    the timestamp is missing/unparseable (in which case we don't gate on age)."""
+    if not timestamp:
+        return None
+    try:
+        ts = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - ts).total_seconds()
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -43,6 +59,16 @@ def on_alert_snapshot(client, payload: bytes):
         snapshot = json.loads(payload.decode())
     except (json.JSONDecodeError, UnicodeDecodeError):
         log.warning("Invalid alert snapshot payload")
+        return
+
+    # Pause the LLM when no fresh data is arriving: if this snapshot is older
+    # than the freshness window it is either a backlog item we fell behind on or
+    # a leftover from a stopped simulator. Drop it without calling the LLM. We
+    # intentionally don't touch _enriched_alert_ids here, so the next fresh
+    # snapshot still narrates whatever is genuinely current.
+    age = _snapshot_age_seconds(snapshot.get("timestamp", ""))
+    if age is not None and age > MAX_ALERT_AGE_SECONDS:
+        log.info("Skipping stale alert snapshot ({:.0f}s old) — no fresh observations; LLM paused.", age)
         return
 
     alerts = snapshot.get("alerts", [])
