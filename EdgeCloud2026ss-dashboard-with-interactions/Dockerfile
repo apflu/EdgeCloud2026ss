@@ -14,11 +14,6 @@ RUN npm ci
 ARG VITE_WS_URL
 ENV VITE_WS_URL=$VITE_WS_URL
 
-# HTTP base URL of the TTS backend (EdgeCloudAudio/ttsServer) used by the
-# speaker buttons on robot suggestions to generate + publish speech.
-ARG VITE_TTS_API_URL
-ENV VITE_TTS_API_URL=$VITE_TTS_API_URL
-
 # Copy the rest of the source and produce the production build in /app/dist
 COPY . .
 RUN npm run build

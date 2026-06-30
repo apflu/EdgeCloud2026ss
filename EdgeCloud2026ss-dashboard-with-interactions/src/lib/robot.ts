@@ -44,7 +44,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
 
   if (severity === 'CRITICAL') {
     options.push({
-      code: 'CALL_STAFF_AND_REASSURE', // Avoid Movement 
+      code: 'CALL_STAFF_AND_REASSURE',
       label: 'Call staff + reassure patient',
       speech: 'Assistance is being called. Please remain calm and avoid moving until staff arrives.',
       priority: 'HIGH',
@@ -59,7 +59,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
     options.push({
       code: 'CONFIRM_CONSCIOUS_RESPONSE',
       label: 'Check if patient can respond',
-      speech: 'Patient, can you hear me? If you can, please say yes or raise your hand slowly.',
+      speech: 'Can you hear me? If you can, please say yes or raise your hand slowly.',
       priority: 'HIGH',
       intent: 'check_patient',
       expectedResponse: 'patient_confirmation',
@@ -72,7 +72,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
     options.push({
       code: 'GUIDE_STAY_STILL',
       label: 'Tell patient not to move',
-      speech: 'Please stay still. Help is on the way. Try to remain calm on a comfortable position.',
+      speech: 'Please try not to move. Help is on the way. Stay as comfortable as possible.',
       priority: 'HIGH',
       intent: 'guide_patient',
       expectedResponse: 'none',
@@ -88,7 +88,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
     options.push({
       code: 'ASK_PATIENT_STATUS',
       label: 'Ask if help is needed',
-      speech: 'Our system has detected a potential issue. Are you feeling okay??',
+      speech: 'I detected a possible problem. Do you need help?',
       priority: 'HIGH',
       intent: 'check_patient',
       expectedResponse: 'patient_confirmation',
@@ -101,7 +101,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
     options.push({
       code: 'CALL_STAFF_AND_REASSURE',
       label: 'Notify staff immediately',
-      speech: 'Staff will soon arrive.',
+      speech: 'I am notifying staff now. Please remain calm and wait for assistance.',
       priority: 'HIGH',
       intent: 'notify_staff',
       expectedResponse: 'patient_confirmation',
@@ -115,7 +115,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
       options.push({
         code: 'BREATHING_CHECK',
         label: 'Ask calm breathing/status question',
-        speech: 'Please take a slow deep breath in, and breathe out slowly. Are you feeling short of breath or dizzy?',
+        speech: 'Please breathe normally if you can. Are you feeling short of breath or dizzy?',
         priority: 'HIGH',
         intent: 'check_patient',
         expectedResponse: 'patient_confirmation',
@@ -148,7 +148,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
       options.push({
         code: 'GUIDE_SAFE_BED_RETURN',
         label: 'Guide safe bed return',
-        speech: 'Patient, please return to bed.',
+        speech: 'If you feel stable, please return to the bed slowly or wait for staff assistance.',
         priority: 'MEDIUM',
         intent: 'guide_patient',
         expectedResponse: 'patient_confirmation',
@@ -162,7 +162,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
     options.push({
       code: 'ASK_PATIENT_STATUS',
       label: 'Check patient status',
-      speech: 'Hello Patient. Please inform us of your current status.',
+      speech: 'Are you feeling well? Please respond if you need assistance.',
       priority: 'MEDIUM',
       intent: 'check_patient',
       expectedResponse: 'patient_confirmation',
@@ -178,7 +178,7 @@ export function buildRobotOptions(data: DashboardData): RobotCommand[] {
   options.push({
     code: 'IDLE_MONITORING',
     label: 'Idle monitoring',
-    speech: 'Monitoring is active. Let us know if you need some kind of assistance.',
+    speech: 'Monitoring is active. No action is needed right now.',
     priority: 'LOW',
     intent: 'observe',
     expectedResponse: 'none',

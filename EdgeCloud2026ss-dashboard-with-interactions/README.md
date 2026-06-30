@@ -33,8 +33,8 @@ src/lib/riskEngine.ts              Internal risk calculation
 src/lib/alertEngine.ts             Alert generation
 src/lib/deviceEngine.ts            Device state derivation
 src/lib/robot.ts                   Robot command options and payloads
-src/lib/ttsClient.ts                Calls the TTS backend to speak a robot preset line
 src/lib/deriveDashboardState.ts    Observation -> dashboard state
+src/lib/ttsClient.ts               Calls the TTS backend to speak a robot preset line
 src/components/ObservationInputPanel.tsx  Manual JSON test panel
 src/hooks/useDashboardStream.ts    State controller and operator actions
 ```

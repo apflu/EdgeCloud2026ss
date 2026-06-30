@@ -4,6 +4,7 @@ import {
   AlertsPanel,
   AuditPanel,
   DevicesPanel,
+  EnvironmentPanel,
   HealthSummaryPanel,
   PatientStatusPanel,
   PrivacyPanel,
@@ -33,12 +34,12 @@ export default function App() {
     triggerTrackingLost,
     triggerVitalsConcern,
     triggerBedExit,
+    logSpeechEvent,
     acknowledgeAlert,
     resolveAlert,
     escalateAlert,
     markPatientChecked,
     sendRobotCommand,
-    logSpeechEvent,
     recordPatientResponseOk,
     recordNoPatientResponse,
     submitObservationJson,
@@ -70,6 +71,7 @@ export default function App() {
 
       <div className='dashboard-grid'>
         <PatientStatusPanel data={data} onSelectPatient={selectPatient} />
+        <EnvironmentPanel data={data} />
         <HealthSummaryPanel data={data} />
         <AlertsPanel
           data={data}

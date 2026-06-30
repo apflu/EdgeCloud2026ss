@@ -20,7 +20,19 @@ import {
   type EnrichmentMap,
 } from '../types/alerts';
 
-const WS_URL = import.meta.env.VITE_WS_URL as string | undefined;
+// Resolve the configured WS endpoint. A full ws://host:port URL is used as-is;
+// a relative value like "/ws" is resolved against the page origin (correct
+// scheme + host), so the WebSocket rides the same port that served the app.
+function resolveWsUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  if (raw.startsWith('ws://') || raw.startsWith('wss://')) return raw;
+  if (typeof window === 'undefined') return undefined;
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const path = raw.startsWith('/') ? raw : `/${raw}`;
+  return `${proto}//${window.location.host}${path}`;
+}
+
+const WS_URL = resolveWsUrl(import.meta.env.VITE_WS_URL as string | undefined);
 type ConnectionMode = 'local-observation-simulation' | 'server-websocket' | 'paused' | 'manual-json';
 
 const seed = normalObservation();
@@ -119,11 +131,13 @@ export function useDashboardStream(intervalMs = 3000) {
     }
 
     if (WS_URL) {
-      const ws = new WebSocket(WS_URL);
-      wsRef.current = ws;
-      setConnectionMode('server-websocket');
+      // The bridge connection can drop (e.g. an SSH-forwarded port hiccup). A
+      // single drop must NOT freeze the dashboard forever, so we auto-reconnect
+      // with a short backoff until the effect is torn down.
+      let disposed = false;
+      let reconnectTimer: number | undefined;
 
-      ws.onmessage = (event) => {
+      const handleMessage = (event: MessageEvent) => {
         try {
           const raw = JSON.parse(event.data);
           // Bridge wraps every message as { type, data }. A bare observation
@@ -150,11 +164,34 @@ export function useDashboardStream(intervalMs = 3000) {
         }
       };
 
-      ws.onerror = () => {
-        console.warn('WebSocket connection failed. Local observation simulation remains available.');
+      const connect = () => {
+        if (disposed) return;
+        const ws = new WebSocket(WS_URL);
+        wsRef.current = ws;
+        setConnectionMode('server-websocket');
+        ws.onmessage = handleMessage;
+        ws.onerror = () => {
+          console.warn('WebSocket connection error. Will retry shortly.');
+        };
+        ws.onclose = () => {
+          if (disposed) return;
+          // Reconnect after a short delay; the bridge replays the latest
+          // observation/alerts on connect, so state recovers immediately.
+          reconnectTimer = window.setTimeout(connect, 2000);
+        };
       };
 
-      return () => ws.close();
+      connect();
+
+      return () => {
+        disposed = true;
+        if (reconnectTimer) window.clearTimeout(reconnectTimer);
+        const ws = wsRef.current;
+        if (ws) {
+          ws.onclose = null;
+          ws.close();
+        }
+      };
     }
 
     setConnectionMode('local-observation-simulation');

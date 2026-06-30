@@ -41,10 +41,24 @@ export const IncomingPatientSchema = z.object({
     .optional(),
 });
 
+// Real ESP32 sensor-hub readings the rule engine attaches at room level. The
+// node physically measures these (room temperature, gas, doorway laser); they
+// are kept separate from the per-patient vitals, which for this node are
+// simulated. All fields optional/nullable so older streams still validate.
+export const EnvironmentSchema = z.object({
+  roomTemperatureC: z.number().nullable().optional(),
+  gasLevel: z.number().nullable().optional(),
+  doorPresent: z.boolean().optional(),
+  distanceFromDoorMeters: z.number().nullable().optional(),
+  roomOccupancy: z.number().optional(),
+});
+export type Environment = z.infer<typeof EnvironmentSchema>;
+
 export const IncomingRoomStateSchema = z.object({
   roomId: z.string(),
   timestamp: z.string(),
   patients: z.array(IncomingPatientSchema).min(1),
+  environment: EnvironmentSchema.optional(),
 });
 
 export type IncomingPatient = z.infer<typeof IncomingPatientSchema>;

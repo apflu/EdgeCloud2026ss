@@ -89,6 +89,28 @@ export function HealthSummaryPanel({ data }: { data: DashboardData }) {
   );
 }
 
+export function EnvironmentPanel({ data }: { data: DashboardData }) {
+  const env = data.environment;
+  const fmt = (value: number | null | undefined, suffix = '', digits = 0) =>
+    typeof value === 'number' ? `${value.toFixed(digits)}${suffix}` : 'Unknown';
+
+  return (
+    <Panel title='Room Environment' subtitle='Live ESP32 sensor-hub readings — real device data'>
+      {env ? (
+        <div className='key-values compact'>
+          <div><span>Room Temperature</span><strong>{fmt(env.roomTemperatureC, ' °C', 1)}</strong></div>
+          <div><span>Gas Level</span><strong>{fmt(env.gasLevel, '', 0)}</strong></div>
+          <div><span>Doorway</span><strong>{env.doorPresent === undefined ? 'Unknown' : env.doorPresent ? 'Person in doorway' : 'Clear'}</strong></div>
+          <div><span>Distance From Door</span><strong>{fmt(env.distanceFromDoorMeters, ' m', 2)}</strong></div>
+          <div><span>Patient Entries (counter)</span><strong>{typeof env.roomOccupancy === 'number' ? env.roomOccupancy : 'Unknown'}</strong></div>
+        </div>
+      ) : (
+        <div className='empty-state'>No live environment data. Connect the ESP32 sensor hub (this panel stays empty in local simulation mode).</div>
+      )}
+    </Panel>
+  );
+}
+
 function AiEnrichment({ enrichment }: { enrichment: EnrichmentMap[string] }) {
   return (
     <div className='ai-enrichment'>
