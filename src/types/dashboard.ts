@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EnvironmentSchema } from './incoming';
 
 export const SeveritySchema = z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
 export type Severity = z.infer<typeof SeveritySchema>;
@@ -84,6 +85,10 @@ export const DashboardSchema = z.object({
   }),
 
   tracking: TrackingSchema,
+
+  // Real ESP32 sensor-hub readings (room temperature, gas, doorway + counter),
+  // passed through from the incoming observation. Optional: absent in mock mode.
+  environment: EnvironmentSchema.optional(),
 
   alerts: z.array(AlertSchema),
 

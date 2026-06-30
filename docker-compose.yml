@@ -4,12 +4,17 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Connect the live dashboard to the EdgeCloud_Main MQTT->WebSocket
-        # bridge. Both stacks run on the same machine, so the browser dials
-        # the bridge's published port on localhost. Override for a remote host.
-        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8081}
+        # Same-origin WebSocket path: the browser dials ws(s)://<dashboard-host>/ws,
+        # which nginx proxies to the bridge. Only port 8080 needs to be reachable
+        # (works through a single SSH/VS Code port-forward). Override with a full
+        # ws:// URL to point at a remote bridge directly.
+        VITE_WS_URL: ${VITE_WS_URL:-/ws}
     image: secure-medtech-ui:latest
     container_name: secure-medtech-ui
+    # Lets nginx reach the bridge published on the host's 8081 (the bridge runs
+    # in the other compose stack, so we go via the host gateway).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       # Host 8080 -> nginx 80 inside the container
       - "8080:80"

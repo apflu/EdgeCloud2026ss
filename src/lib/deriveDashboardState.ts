@@ -176,6 +176,9 @@ export function deriveDashboardState(
       distanceFromBedMeters: selectedPatient.tracking.distanceFromBedMeters,
     },
 
+    // Real device readings ride at room level — pass them straight through.
+    environment: input.environment,
+
     alerts,
     devices,
 

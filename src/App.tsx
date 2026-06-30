@@ -4,6 +4,7 @@ import {
   AlertsPanel,
   AuditPanel,
   DevicesPanel,
+  EnvironmentPanel,
   HealthSummaryPanel,
   PatientStatusPanel,
   PrivacyPanel,
@@ -69,6 +70,7 @@ export default function App() {
 
       <div className='dashboard-grid'>
         <PatientStatusPanel data={data} onSelectPatient={selectPatient} />
+        <EnvironmentPanel data={data} />
         <HealthSummaryPanel data={data} />
         <AlertsPanel
           data={data}
