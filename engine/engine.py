@@ -35,9 +35,11 @@ from config import (
     CHANGE_WINDOW_SECONDS,
     MQTT_BROKER,
     MQTT_PORT,
+    OBSERVATION_OUT_TOPIC,
     OBSERVATION_TOPIC,
 )
 from logger import log
+from normalize import normalize_observation
 from rules import alert_title, calculate_risk, detect_changes, severity_from_score
 from state import RoomState
 
@@ -118,10 +120,22 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 def on_message(client, userdata, msg):
     try:
-        observation = json.loads(msg.payload.decode())
+        raw_observation = json.loads(msg.payload.decode())
     except (json.JSONDecodeError, UnicodeDecodeError):
         log.warning("Invalid observation payload on {}", msg.topic)
         return
+
+    # Complete the partial edge-node feed into the canonical schema (fills the
+    # vitals this node can't measure, restamps to server time, adds the doorway
+    # occupancy counter) and republish it as the single source of truth the
+    # bridge/dashboard consume — then evaluate rules off the same completed data.
+    observation = normalize_observation(raw_observation)
+    client.publish(
+        OBSERVATION_OUT_TOPIC,
+        json.dumps(observation, separators=(",", ":")),
+        qos=1,
+        retain=True,
+    )
 
     room_id = observation.get("roomId", "")
     timestamp = observation.get("timestamp", "")

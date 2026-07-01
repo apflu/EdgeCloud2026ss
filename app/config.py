@@ -17,6 +17,15 @@ TOPIC_RESPONSE = "edge/response"
 TOPIC_ALERTS = os.environ.get("TOPIC_ALERTS", "edge/alerts/room/101")
 TOPIC_ALERTS_ENRICHED = os.environ.get("TOPIC_ALERTS_ENRICHED", "edge/alerts/enriched/room/101")
 
+# Skip LLM enrichment for alert snapshots older than this many seconds. The
+# engine only emits alerts in response to observations, so when the simulator
+# stops the stream goes quiet — but the broker keeps handing us snapshots that
+# were already queued while the (slow) LLM calls ran. Enriching those narrates
+# stale state and burns tokens after the data has stopped. Dropping them makes
+# the LLM effectively pause when no fresh observations are arriving, and lets
+# the app shed a backlog instead of grinding through it.
+MAX_ALERT_AGE_SECONDS = float(os.environ.get("MAX_ALERT_AGE_SECONDS", "10"))
+
 # ── LLM Endpoint ─────────────────────────────────────────────────────
 # Base URL of any OpenAI-compatible API (Ollama, vLLM, LM Studio, etc.)
 # Examples:
