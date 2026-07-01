@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../EdgeCloud"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../EdgeCloud_Sensor"
+		}
+	],
+	"settings": {}
+}
