@@ -89,7 +89,8 @@ classDiagram
   app_main ..> enrich
   app_main ..> crypto
   enrich ..> llm_client
-  bridge ..> "MQTT + asyncio websockets"
+  bridge ..> paho_mqtt
+  bridge ..> websockets
 ```
 
 ## Kernaussagen
